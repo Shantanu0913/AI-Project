@@ -50,14 +50,6 @@
                         </svg>
                     </div>
                     <span class="logo-name">Smart Parking System</span>
-                    
-                    <!-- Accessibility Recenter Btn -->
-                    <button id="recenter-btn" class="nav-ctrl-btn" title="Recenter on My Location">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                    </button>
                 </div>
             </div>
 
@@ -335,7 +327,7 @@
                 </button>
             </div>
 
-            <!-- A* Console Overlay -->
+            <!-- Map Overlays -->
             <div id="console-toggle" class="console-toggle">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
@@ -344,6 +336,15 @@
                 </svg>
                 A* Logs
             </div>
+
+            <!-- Recenter Control Overlay -->
+            <button id="recenter-btn" class="map-ctrl-overlay" title="Recenter on My Location">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                Recenter
+            </button>
             <div id="console-panel" class="console-panel hidden">
                 <div class="console-header">
                     <span>A* Algorithm Evaluation</span>

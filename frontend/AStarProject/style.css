@@ -204,30 +204,37 @@ body {
     width: 100%;
 }
 
-/* Nav Control Button (moved from map) */
-.nav-ctrl-btn {
-    margin-left: auto;
-    width: 32px;
-    height: 32px;
-    background: var(--bg-hover);
+/* Map Area Controls (Floating Overlays) */
+.map-ctrl-overlay {
+    position: absolute;
+    bottom: 24px;
+    left: 16px;
+    padding: 8px 16px;
+    background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
     cursor: pointer;
+    z-index: 600;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 8px;
     transition: var(--transition);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.nav-ctrl-btn:hover {
-    color: var(--accent);
+.map-ctrl-overlay:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
     border-color: var(--accent);
-    background: var(--accent-glow);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(52, 211, 153, 0.15);
 }
 
-.nav-ctrl-btn:active {
+.map-ctrl-overlay:active {
     transform: translateY(0);
 }
 
@@ -976,9 +983,8 @@ body {
 /* --- Console Panel (A* Logs) --- */
 .console-toggle {
     position: absolute;
-    top: 64px;
+    top: 64px; /* Back to original top position */
     left: 16px;
-    right: auto;
     padding: 8px 16px;
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -1003,9 +1009,8 @@ body {
 
 .console-panel {
     position: absolute;
-    top: 108px;
+    top: 108px; /* Back to original position */
     left: 16px;
-    right: auto;
     width: 420px;
     max-height: 340px;
     background: #0c0c14;
@@ -1021,7 +1026,7 @@ body {
 }
 
 .console-panel.hidden {
-    transform: translateY(-10px);
+    transform: translateY(-10px); /* Slides UP when at the top */
     opacity: 0;
     pointer-events: none;
 }
