@@ -201,6 +201,34 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+    width: 100%;
+}
+
+/* Nav Control Button (moved from map) */
+.nav-ctrl-btn {
+    margin-left: auto;
+    width: 32px;
+    height: 32px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.nav-ctrl-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-glow);
+    transform: translateY(-1px);
+}
+
+.nav-ctrl-btn:active {
+    transform: translateY(0);
 }
 
 .logo-icon {
@@ -347,17 +375,20 @@ body {
     scroll-behavior: smooth;
 }
 
-.parking-list::-webkit-scrollbar {
-    width: 4px;
+/* Parking List & Sidebar Panels - Hide Scrollbar while keeping functionality */
+.sidebar-panel,
+.parking-list,
+.vehicles-scroll,
+.history-scroll {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
 }
 
-.parking-list::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.parking-list::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 4px;
+.sidebar-panel::-webkit-scrollbar,
+.parking-list::-webkit-scrollbar,
+.vehicles-scroll::-webkit-scrollbar,
+.history-scroll::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
 }
 
 .parking-item {
@@ -597,11 +628,42 @@ body {
     color: var(--red);
 }
 
+/* --- Map Controls Removed - Moved to Sidebar --- */
+
+/* --- Selected Marker Highlight --- */
+.selected-marker {
+    z-index: 1000 !important;
+}
+
+.selected-marker div {
+    transform: scale(1.3) !important;
+    border-color: #fff !important;
+    box-shadow: 0 0 30px var(--accent) !important;
+    animation: markerBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite alternate !important;
+}
+
+@keyframes markerBounce {
+    from { transform: scale(1.25) translateY(0); }
+    to { transform: scale(1.35) translateY(-8px); }
+}
+
+/* --- Accessibility Helpers --- */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
 /* --- Floating Detail Card --- */
 .detail-card {
     position: absolute;
-    bottom: 32px;
-    right: 32px;
+    bottom: 24px;
+    right: 24px;
     width: 340px;
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -818,6 +880,7 @@ body {
     animation: pulseReserved 2s infinite;
 }
 
+
 @keyframes pulseReserved {
     0% {
         transform: scale(1);
@@ -913,8 +976,9 @@ body {
 /* --- Console Panel (A* Logs) --- */
 .console-toggle {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: 64px;
+    left: 16px;
+    right: auto;
     padding: 8px 16px;
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -939,8 +1003,9 @@ body {
 
 .console-panel {
     position: absolute;
-    top: 56px;
-    right: 16px;
+    top: 108px;
+    left: 16px;
+    right: auto;
     width: 420px;
     max-height: 340px;
     background: #0c0c14;
@@ -1320,6 +1385,84 @@ body {
 /* ========================
    NAVIGATION TABS
    ======================== */
+/* Search Architecture Refined */
+.search-container {
+    padding: 0 16px;
+    margin: 16px 0 14px;
+}
+
+.search-form-inner {
+    display: flex;
+    align-items: center;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 46px;
+    overflow: hidden;
+}
+
+.search-form-inner:focus-within {
+    border-color: var(--accent);
+    background: var(--bg-card);
+    box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.search-icon-box {
+    width: 44px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: color 0.2s;
+}
+
+.search-form-inner:focus-within .search-icon-box {
+    color: var(--accent);
+}
+
+.search-input {
+    flex: 1;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important; /* Force remove any shadow */
+    -webkit-appearance: none;    /* Force remove Safari/Chrome default styles */
+    -moz-appearance: none;
+    appearance: none;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.88rem;
+    padding: 0 12px 0 10px; /* Increased left padding for clear letter visibility */
+    margin: 0;
+}
+
+.search-spinner {
+    padding: 0 14px;
+    color: var(--accent);
+    animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+    100% { transform: rotate(360deg); }
+}
+
+.filter-row {
+    padding: 0 16px 18px; /* Balanced bottom padding */
+    display: flex;
+    align-items: center;
+    gap: 12px; /* Uniform chip gap */
+    flex-wrap: wrap;
+}
+
+.filter-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+}
+
 .nav-tabs {
     display: flex;
     flex-direction: row;

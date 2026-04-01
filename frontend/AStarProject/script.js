@@ -13,6 +13,7 @@ let userLocMarker = null;
 let routeLine = null;
 let userCoords = null;
 let parkingMarkers = {};
+let lastSelectedMarker = null; // Track selection for visual updates
 let selectedNodeId = null;
 let aStarLayers = [];       // Temp map overlays for A* visualization
 let isAStarRunning = false;  // Prevent double-clicks during animation
@@ -23,11 +24,16 @@ let isRouteRunning = false; // Prevent overlapping grid searches
 const BACKEND_URL = window.ENV?.API_URL || ''; 
 let currentClusterKey = null; // Store for booking API
 let lastSearchedName = "Local Area";
-let selectedVehicleType = 'all'; // 'car', '2-wheeler', or 'all'
+let selectedVehicleType = localStorage.getItem('pk_pref_vtype') || 'all'; // Load from storage
 let pendingSearchData = null;    // Stores {lat, lng, name, isSRM} while modal is open
 let vehiclesList = [];           // Cached vehicles from backend
 let pendingBooking = null;       // Stores {nodeId, slotId} for booking modal
 let activePanel = 'map';         // Current sidebar panel: 'map', 'vehicles', 'history'
+
+// Functional Settings State
+let searchRadiusKm = parseFloat(localStorage.getItem('pk_radius')) || 2.0;
+let mappingMode = localStorage.getItem('pk_map_mode') || 'haversine';
+let highDensitySimulation = localStorage.getItem('pk_density') !== 'false';
 
 // ========================
 // SRM KTR CAMPUS PARKING DATA
@@ -104,7 +110,8 @@ SRM_KTR_PARKING.forEach(n => {
  * Total slots = availableSlots + some random booked slots.
  */
 function generateSlotDetails(availableCount) {
-    const totalSlots = availableCount + Math.floor(Math.random() * 8) + 3;
+    const base = highDensitySimulation ? 35 : 10; // Higher density if toggled
+    const totalSlots = availableCount + Math.floor(Math.random() * base) + 3;
     const details = [];
     for (let i = 0; i < totalSlots; i++) {
         details.push({
@@ -126,6 +133,9 @@ function generateSlotDetails(availableCount) {
 // 1. SPLASH → APP TRANSITION
 // ========================
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Initial auth check happens first
+    try { initAuth(); } catch (e) { console.error('Auth error', e); }
+
     const splash = document.getElementById('splash-screen');
     const app = document.getElementById('app');
 
@@ -149,17 +159,27 @@ document.addEventListener('DOMContentLoaded', () => {
             if (node) drawRoute(node);
         }
     });
-
-    // Console toggle
-    document.getElementById('console-toggle').addEventListener('click', () => {
-        document.getElementById('console-panel').classList.toggle('hidden');
-    });
-    document.getElementById('console-close').addEventListener('click', () => {
-        document.getElementById('console-panel').classList.add('hidden');
-    });
-
     // Search form — geocode any place name to coordinates
-    document.getElementById('search-form').addEventListener('submit', handleLocationSearch);
+    document.getElementById('search-form')?.addEventListener('submit', handleLocationSearch);
+
+    // Vehicle type filter chips in sidebar
+    document.querySelectorAll('.vehicle-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('.vehicle-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            selectedVehicleType = chip.dataset.vtype;
+            renderParkingList();
+            drawParkingMarkers();
+        });
+    });
+
+    // Console toggle handlers
+    document.getElementById('console-toggle')?.addEventListener('click', () => {
+        document.getElementById('console-panel')?.classList.toggle('hidden');
+    });
+    document.getElementById('console-close')?.addEventListener('click', () => {
+        document.getElementById('console-panel')?.classList.add('hidden');
+    });
 
     // Filter chips removed
     // Vehicle preference modal handlers
@@ -173,16 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         handleVehicleSelection('all');
     });
 
-    // Vehicle type filter chips in sidebar
-    document.querySelectorAll('.vehicle-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-            document.querySelectorAll('.vehicle-chip').forEach(c => c.classList.remove('active'));
-            chip.classList.add('active');
-            selectedVehicleType = chip.dataset.vtype;
-            renderParkingList();
-            drawParkingMarkers();
-        });
-    });
+    // Redundant filter chips removed (logic migrated to Settings)
 
     // Navigation tab handlers
     document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -199,8 +210,93 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('bm-confirm-btn').addEventListener('click', confirmBookingFromModal);
     document.getElementById('bm-cancel-btn').addEventListener('click', cancelBookingModal);
 
-    initAuth();
+    // Settings Tab Functionality
+    const radiusInput = document.getElementById('settings-radius');
+    const radiusVal = document.getElementById('radius-val');
+    const vtypeChips = document.querySelectorAll('.vtype-chip');
+    const densityToggle = document.getElementById('settings-density-toggle');
+    const logoutBtn = document.getElementById('btn-logout');
+
+    // Initialize UI from state
+    if (radiusInput) {
+        radiusInput.value = searchRadiusKm;
+        radiusVal.textContent = searchRadiusKm.toFixed(1);
+    }
+
+    if (vtypeChips.length > 0) {
+        vtypeChips.forEach(chip => {
+            // Default to 'all' if no specific preference saved
+            const savedVtype = localStorage.getItem('pk_pref_vtype') || 'all';
+            if (chip.dataset.vtype === savedVtype) {
+                chip.classList.add('active');
+            } else {
+                chip.classList.remove('active');
+            }
+        });
+    }
+    toggleDensityUI(highDensitySimulation);
+
+    radiusInput?.addEventListener('input', (e) => {
+        searchRadiusKm = parseFloat(e.target.value);
+        radiusVal.textContent = searchRadiusKm.toFixed(1);
+        localStorage.setItem('pk_radius', searchRadiusKm);
+    });
+
+    vtypeChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            vtypeChips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            const vtype = chip.dataset.vtype;
+            localStorage.setItem('pk_pref_vtype', vtype);
+            selectedVehicleType = vtype; // Sync global state
+            logToConsole(`> Preferred vehicle: ${vtype}`, 'success');
+            
+            // Refresh visuals
+            drawParkingMarkers();
+            renderParkingList();
+        });
+    });
+
+    densityToggle?.addEventListener('click', () => {
+        highDensitySimulation = !highDensitySimulation;
+        localStorage.setItem('pk_density', highDensitySimulation);
+        toggleDensityUI(highDensitySimulation);
+        logToConsole(`> High density simulation: ${highDensitySimulation ? 'On' : 'Off'}`, 'success');
+    });
+
+    logoutBtn?.addEventListener('click', () => {
+        localStorage.clear();
+        window.location.reload();
+    });
+
+    // Accessibility btn
+    document.getElementById('recenter-btn')?.addEventListener('click', () => {
+        if (userCoords) {
+            map.flyTo([userCoords.lat, userCoords.lng], 16, { duration: 1 });
+            logToConsole('> Centering map on your location...', 'success');
+        } else {
+            getUserLocation();
+        }
+    });
+
+    // Cleanup: No duplicate initAuth call at end
 });
+
+function toggleDensityUI(isActive) {
+    const toggle = document.getElementById('settings-density-toggle');
+    const knob = document.getElementById('density-knob');
+    if (!toggle || !knob) return;
+    
+    if (isActive) {
+        toggle.style.background = 'var(--accent)';
+        knob.style.right = '2px';
+        knob.style.left = 'auto';
+    } else {
+        toggle.style.background = 'var(--bg-hover)';
+        knob.style.right = 'auto';
+        knob.style.left = '2px';
+    }
+}
 
 // ========================
 // AUTHENTICATION & SETTINGS
@@ -217,10 +313,10 @@ function initAuth() {
         authOverlay.style.display = 'flex';
         authOverlay.style.opacity = '1';
     } else {
-        document.getElementById('settings-user-name').textContent = loggedInName;
-        document.getElementById('settings-user-email').textContent = loggedInEmail || 'user@parknova.local';
-        document.getElementById('footer-user-name').textContent = loggedInName;
-        document.getElementById('footer-user-email').textContent = loggedInEmail || 'user@parknova.local';
+        const footName = document.getElementById('footer-user-name');
+        const footEmail = document.getElementById('footer-user-email');
+        if (footName) footName.textContent = loggedInName;
+        if (footEmail) footEmail.textContent = loggedInEmail || 'user@parknova.local';
         authOverlay.style.display = 'none'; // Ensure it stays hidden
     }
 
@@ -232,10 +328,11 @@ function initAuth() {
         if (name && email) {
             localStorage.setItem('parknova_user_name', name);
             localStorage.setItem('parknova_user_email', email);
-            document.getElementById('settings-user-name').textContent = name;
-            document.getElementById('settings-user-email').textContent = email;
-            document.getElementById('footer-user-name').textContent = name;
-            document.getElementById('footer-user-email').textContent = email;
+            
+            const footName = document.getElementById('footer-user-name');
+            const footEmail = document.getElementById('footer-user-email');
+            if (footName) footName.textContent = name;
+            if (footEmail) footEmail.textContent = email;
             
             authOverlay.style.opacity = '0';
             setTimeout(() => {
@@ -443,7 +540,6 @@ function drawParkingMarkers() {
                 dashArray: '6 4',
                 lineJoin: 'round',
             });
-            rect.bindPopup(popupContent);
 
             // Center label — small badge showing slot count + vehicle icon
             const center = [
@@ -478,7 +574,6 @@ function drawParkingMarkers() {
                     popupAnchor: [0, -20]
                 })
             });
-            labelMarker.bindPopup(popupContent);
 
             // Click handlers
             rect.on('click', () => selectParkingNode(node.id));
@@ -487,14 +582,16 @@ function drawParkingMarkers() {
             group.addLayer(rect);
             group.addLayer(labelMarker);
             group.addTo(map);
+
+            // Important: Save references for selection highlights
+            group.labelMarker = labelMarker; 
             parkingMarkers[node.id] = group;
 
         } else {
             // ── Circular marker (fallback for non-SRM / backend data) ──
             const icon = createParkingIcon(node);
             const m = L.marker([node.lat, node.lng], { icon })
-                .addTo(map)
-                .bindPopup(popupContent);
+                .addTo(map);
             m.on('click', () => selectParkingNode(node.id));
             parkingMarkers[node.id] = m;
         }
@@ -915,12 +1012,33 @@ function selectParkingNode(nodeId) {
     // Highlight in sidebar
     renderParkingList();
 
+    // Reset previous selection
+    if (lastSelectedMarker) {
+        lastSelectedMarker.getElement()?.classList.remove('selected-marker');
+    }
+
     // Fly map to the selected node
     map.flyTo([node.lat, node.lng], 16, { duration: 1 });
 
-    // Open popup
+    // Open popup & Apply Highlight
     if (parkingMarkers[nodeId]) {
-        parkingMarkers[nodeId].openPopup();
+        const layerOrGroup = parkingMarkers[nodeId];
+        let targetMarker = layerOrGroup;
+
+        // If it's an SRM Group, we want to open the popup on the label marker
+        if (layerOrGroup instanceof L.LayerGroup && layerOrGroup.labelMarker) {
+            targetMarker = layerOrGroup.labelMarker;
+        }
+
+        if (targetMarker.openPopup) {
+            setTimeout(() => {
+                const el = targetMarker.getElement();
+                if (el) {
+                    el.classList.add('selected-marker');
+                    lastSelectedMarker = targetMarker;
+                }
+            }, 300); // Wait for flyTo to settle or marker to be ready
+        }
     }
 
     // Show detail card
@@ -1138,8 +1256,11 @@ function aStarSearch() {
     const oldBadge = document.querySelector('.astar-result-badge');
     if (oldBadge) oldBadge.remove();
 
-    // Use only filtered nodes (matching vehicle preference)
-    const searchNodes = getFilteredNodes();
+    // Use only filtered nodes (matching vehicle preference and Search Radius)
+    const searchNodes = getFilteredNodes().filter(n => {
+        const dist = calculateDistance(userCoords.lat, userCoords.lng, n.lat, n.lng);
+        return (dist / 1000) <= searchRadiusKm;
+    });
 
     // Zoom out to see all nodes
     const allCoords = searchNodes.map(n => [n.lat, n.lng]);
@@ -1197,11 +1318,18 @@ function aStarSearch() {
         const gN = calculateDistance(userCoords.lat, userCoords.lng, node.lat, node.lng);
         logToConsole(`  g(n) = ${gN.toFixed(0)}m  [Haversine distance]`);
 
-        // Step 3: h(n) — Manhattan heuristic
-        const latDiff = Math.abs(userCoords.lat - node.lat) * 111000;
-        const lngDiff = Math.abs(userCoords.lng - node.lng) * 111000;
-        const hN = latDiff + lngDiff;
-        logToConsole(`  h(n) = ${hN.toFixed(0)}m  [Manhattan heuristic]`);
+        // Step 3: h(n) — heuristic based on mapping mode
+        let hN;
+        if (mappingMode === 'manhattan') {
+            const latDiff = Math.abs(userCoords.lat - node.lat) * 111000;
+            const lngDiff = Math.abs(userCoords.lng - node.lng) * 111000;
+            hN = latDiff + lngDiff;
+            logToConsole(`  h(n) = ${hN.toFixed(0)}m  [Manhattan heuristic]`);
+        } else {
+            // Haversine distance as a direct-line heuristic
+            hN = calculateDistance(userCoords.lat, userCoords.lng, node.lat, node.lng);
+            logToConsole(`  h(n) = ${hN.toFixed(0)}m  [Haversine heuristic]`);
+        }
 
         // Step 4: f(n) = g(n) + h(n)
         const fN = gN + hN;
@@ -1565,7 +1693,8 @@ function triggerEnvironmentalSim() {
     logToConsole('\n> Simulating slot mutations...', 'calc');
 
     P_NODES.forEach(n => {
-        const delta = Math.floor(Math.random() * 7) - 3;
+        const drift = highDensitySimulation ? -4 : 0; // More cars arrive if density set high
+        const delta = Math.floor(Math.random() * 8) - 3 + drift;
         const old = n.slots;
         n.slots = Math.max(0, n.slots + delta);
         if (n.slots !== old) {
@@ -1669,7 +1798,7 @@ function renderVehiclesList() {
     }
 
     vehiclesList.forEach(v => {
-        const iconMap = { 'Car': '🚗', 'SUV': '🚙', 'Electric': '⚡', 'Bike': '🏍️' };
+        const iconMap = { 'Car': '🚗', 'Bike': '🏍️', 'Other': '📦' };
         const card = document.createElement('div');
         card.className = 'vehicle-card';
         card.innerHTML = `
