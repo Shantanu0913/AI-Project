@@ -2008,18 +2008,27 @@ body {
 /* ======================================
    Vehicle Type Mismatch Toast
    ====================================== */
+.mismatch-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
 .mismatch-toast {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translateX(-50%) translateY(-50%);
+    position: relative;
     width: 420px;
     max-width: 92vw;
     background: rgba(17, 17, 24, 0.96);
     border: 1px solid rgba(251, 146, 60, 0.4);
     border-radius: 20px;
     padding: 0;
-    z-index: 1200;
+    z-index: 10000;
     box-shadow:
         0 8px 40px rgba(251, 146, 60, 0.15),
         0 0 80px rgba(251, 146, 60, 0.05),
@@ -2033,11 +2042,11 @@ body {
 @keyframes mismatchSlideIn {
     0% {
         opacity: 0;
-        transform: translateX(-50%) translateY(-50%) scale(0.85);
+        transform: scale(0.85);
     }
     100% {
         opacity: 1;
-        transform: translateX(-50%) translateY(-50%) scale(1);
+        transform: scale(1);
     }
 }
 

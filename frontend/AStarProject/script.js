@@ -63,7 +63,7 @@ const SRM_KTR_PARKING = [
       bounds: [[12.82293, 80.04484], [12.82424, 80.04505]] },
 
     // 5. Center Thin Horizontal (Zone 5 in drawing)
-    { id: 'SRM05', name: 'Faculty Path', slots: 25, vehicleType: 'car',
+    { id: 'SRM05', name: 'TP Ground Parking', slots: 25, vehicleType: 'car',
       lat: 12.82311, lng: 80.04631,
       bounds: [[12.82298, 80.04543], [12.82324, 80.04720]] },
 
@@ -1767,9 +1767,12 @@ function showReservationToast(slotId) {
  * Shows a premium styled popup with clear visual feedback.
  */
 function showMismatchToast(vehicleEmoji, vehicleLabel, facilityEmoji, facilityLabel, facilityName) {
-    // Remove existing mismatch toast if any
-    const existing = document.querySelector('.mismatch-toast');
+    // Remove existing mismatch overlay if any
+    const existing = document.querySelector('.mismatch-overlay');
     if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'mismatch-overlay';
 
     const toast = document.createElement('div');
     toast.className = 'mismatch-toast';
@@ -1806,16 +1809,17 @@ function showMismatchToast(vehicleEmoji, vehicleLabel, facilityEmoji, facilityLa
                 Please select a compatible vehicle or choose a different parking zone.
             </p>
         </div>
-        <button class="mismatch-dismiss-btn" onclick="this.closest('.mismatch-toast').remove()">Got It</button>
+        <button class="mismatch-dismiss-btn" onclick="this.closest('.mismatch-overlay').remove()">Got It</button>
     `;
-    document.querySelector('.map-area').appendChild(toast);
+    overlay.appendChild(toast);
+    document.body.appendChild(overlay);
 
     // Auto-dismiss after 6 seconds
     setTimeout(() => {
-        if (toast.parentNode) {
+        if (overlay.parentNode) {
             toast.style.opacity = '0';
-            toast.style.transform = 'translateX(-50%) translateY(-20px) scale(0.95)';
-            setTimeout(() => { if (toast.parentNode) toast.remove(); }, 400);
+            toast.style.transform = 'scale(0.95)';
+            setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 400);
         }
     }, 6000);
 }
@@ -1857,7 +1861,7 @@ function renderVehiclesList() {
     }
 
     vehiclesList.forEach(v => {
-        const iconMap = { 'Car': '🚗', 'Bike': '🏍️', 'Other': '📦' };
+        const iconMap = { 'Car': '🚗', 'Bike': '🏍️', 'Electric': '🚗' };
         const card = document.createElement('div');
         card.className = 'vehicle-card';
         card.innerHTML = `
@@ -2031,14 +2035,14 @@ async function confirmBookingFromModal() {
         if (node) {
             const facilityType = node.vehicleType || 'car'; // 'car' or '2-wheeler'
             const isBikeVehicle = vehicleType === 'Bike';
+            const isCarVehicle = !isBikeVehicle; // Anything not a Bike is car-class (Car, Electric, etc.)
             const isCarFacility = facilityType === 'car';
-            const isCarVehicle = vehicleType === 'Car';
             const is2wFacility = facilityType === '2-wheeler';
 
             if ((isBikeVehicle && isCarFacility) || (isCarVehicle && is2wFacility)) {
                 const vehicleEmoji = isBikeVehicle ? '🏍️' : '🚗';
                 const facilityEmoji = isCarFacility ? '🚗' : '🏍️';
-                const vehicleLabel = isBikeVehicle ? 'Bike / Two-Wheeler' : 'Car';
+                const vehicleLabel = isBikeVehicle ? 'Bike / Two-Wheeler' : 'Car / Four-Wheeler';
                 const facilityLabel = isCarFacility ? 'Car Parking Zone' : 'Two-Wheeler Parking Zone';
                 showMismatchToast(
                     vehicleEmoji, vehicleLabel,
