@@ -43,12 +43,12 @@ let highDensitySimulation = localStorage.getItem('pk_density') !== 'false';
 const SRM_KTR_CENTER = { lat: 12.8235, lng: 80.0440 };
 const SRM_KTR_PARKING = [
     // 1. Far-Left Vertical Large (Zone 2 in drawing)
-    { id: 'SRM01', name: 'West Car Park', slots: 20, vehicleType: 'car',
+    { id: 'SRM01', name: 'Main Gate Parking', slots: 20, vehicleType: 'car',
       lat: 12.82510, lng: 80.04145,
       bounds: [[12.82468, 80.04119], [12.82552, 80.04172]] },
 
     // 2. Mid-Left Square (Zone 3 in drawing)
-    { id: 'SRM02', name: 'Central Campus 2W', slots: 15, vehicleType: '2-wheeler',
+    { id: 'SRM02', name: 'Architecture Block 2W', slots: 15, vehicleType: '2-wheeler',
       lat: 12.82392, lng: 80.04330,
       bounds: [[12.82366, 80.04290], [12.82418, 80.04371]] },
 
@@ -58,7 +58,7 @@ const SRM_KTR_PARKING = [
       bounds: [[12.82513, 80.04317], [12.82586, 80.04344]] },
 
     // 4. Center Thin Vertical (Zone 4 in drawing)
-    { id: 'SRM04', name: 'Main Avenue 2W', slots: 18, vehicleType: '2-wheeler',
+    { id: 'SRM04', name: 'Java Parking 2W', slots: 18, vehicleType: '2-wheeler',
       lat: 12.82358, lng: 80.04494,
       bounds: [[12.82293, 80.04484], [12.82424, 80.04505]] },
 
@@ -68,7 +68,7 @@ const SRM_KTR_PARKING = [
       bounds: [[12.82298, 80.04543], [12.82324, 80.04720]] },
 
     // 6. Center-Bottom Large Square (Zone 6 in drawing)
-    { id: 'SRM06', name: 'UB Tech Park Lot', slots: 35, vehicleType: 'car',
+    { id: 'SRM06', name: 'Girls Hostel Parking', slots: 35, vehicleType: 'car',
       lat: 12.82185, lng: 80.04540,
       bounds: [[12.82146, 80.04489], [12.82224, 80.04591]] },
 
@@ -78,22 +78,22 @@ const SRM_KTR_PARKING = [
       bounds: [[12.82539, 80.04736], [12.82586, 80.04881]] },
 
     // 8. Mid-Right Square (Zone 8 in drawing)
-    { id: 'SRM08', name: 'Library East Block', slots: 16, vehicleType: 'car',
+    { id: 'SRM08', name: 'DC Roy Parking', slots: 16, vehicleType: 'car',
       lat: 12.82405, lng: 80.04835,
       bounds: [[12.82382, 80.04800], [12.82429, 80.04870]] },
 
     // 9. Rightmost Vertical Curve (Zone 9 in drawing)
-    { id: 'SRM09', name: 'Lake Edge Parking', slots: 14, vehicleType: 'car',
+    { id: 'SRM09', name: 'Hospital Parking', slots: 14, vehicleType: 'car',
       lat: 12.82285, lng: 80.04969,
       bounds: [[12.82235, 80.04950], [12.82335, 80.04988]] },
 
     // 10. Bottom-Right Horizontal (Zone 10 in drawing)
-    { id: 'SRM10', name: 'Hostel South Lot', slots: 24, vehicleType: '2-wheeler',
+    { id: 'SRM10', name: 'Medical College Parking', slots: 24, vehicleType: '2-wheeler',
       lat: 12.82180, lng: 80.04811,
       bounds: [[12.82162, 80.04763], [12.82198, 80.04859]] },
 
     // 11. Bottom-Right Vertical Small (Zone 11 in drawing)
-    { id: 'SRM11', name: 'Potheri Entrance 2W', slots: 10, vehicleType: '2-wheeler',
+    { id: 'SRM11', name: 'Medical College Back Gate Parking', slots: 10, vehicleType: '2-wheeler',
       lat: 12.82151, lng: 80.04902,
       bounds: [[12.82120, 80.04881], [12.82183, 80.04924]] }
 ];
@@ -1761,6 +1761,65 @@ function showReservationToast(slotId) {
     }, 4000);
 }
 
+/**
+ * showMismatchToast()
+ * Warns user when their vehicle type doesn't match the parking zone type.
+ * Shows a premium styled popup with clear visual feedback.
+ */
+function showMismatchToast(vehicleEmoji, vehicleLabel, facilityEmoji, facilityLabel, facilityName) {
+    // Remove existing mismatch toast if any
+    const existing = document.querySelector('.mismatch-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'mismatch-toast';
+    toast.innerHTML = `
+        <div class="mismatch-toast-header">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <strong>Vehicle Type Mismatch!</strong>
+        </div>
+        <div class="mismatch-toast-body">
+            <div class="mismatch-vs">
+                <div class="mismatch-side">
+                    <span class="mismatch-emoji">${vehicleEmoji}</span>
+                    <span class="mismatch-label">Your Vehicle</span>
+                    <span class="mismatch-type">${vehicleLabel}</span>
+                </div>
+                <div class="mismatch-divider">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                    </svg>
+                </div>
+                <div class="mismatch-side">
+                    <span class="mismatch-emoji">${facilityEmoji}</span>
+                    <span class="mismatch-label">Parking Zone</span>
+                    <span class="mismatch-type">${facilityLabel}</span>
+                </div>
+            </div>
+            <p class="mismatch-message">
+                <strong>"${facilityName}"</strong> is a <strong>${facilityLabel}</strong>. 
+                Please select a compatible vehicle or choose a different parking zone.
+            </p>
+        </div>
+        <button class="mismatch-dismiss-btn" onclick="this.closest('.mismatch-toast').remove()">Got It</button>
+    `;
+    document.querySelector('.map-area').appendChild(toast);
+
+    // Auto-dismiss after 6 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(-50%) translateY(-20px) scale(0.95)';
+            setTimeout(() => { if (toast.parentNode) toast.remove(); }, 400);
+        }
+    }, 6000);
+}
+
 // ========================
 // NAVIGATION PANEL SWITCHING
 // ========================
@@ -1927,18 +1986,28 @@ function showBookingModal(nodeId, slotId) {
     const node = P_NODES.find(n => n.id === nodeId);
     if (!node) return;
 
+    const facilityVtype = node.vehicleType || 'car';
+    const vtypeLabel = facilityVtype === '2-wheeler' ? '🏍️ Two-Wheeler Zone' : '🚗 Car Zone';
     document.getElementById('bm-facility-name').textContent = node.name;
     document.getElementById('bm-slot-id').textContent = slotId;
 
-    // Populate vehicle dropdown
+    // Show facility vehicle type in modal
+    let vtypeInfoEl = document.getElementById('bm-facility-vtype');
+    if (vtypeInfoEl) {
+        vtypeInfoEl.textContent = vtypeLabel;
+        vtypeInfoEl.className = `bm-vtype-tag bm-vtype-${facilityVtype === '2-wheeler' ? '2w' : 'car'}`;
+    }
+
+    // Populate vehicle dropdown with type info
     const select = document.getElementById('bm-vehicle-select');
     select.innerHTML = '<option value="">— No vehicle —</option>';
     vehiclesList.forEach(v => {
         const opt = document.createElement('option');
         opt.value = v.id;
-        opt.textContent = `${v.name} (${v.plate})`;
+        opt.textContent = `${v.name} (${v.plate}) — ${v.type}`;
         opt.dataset.vname = v.name;
         opt.dataset.vplate = v.plate;
+        opt.dataset.vtype = v.type; // 'Car', 'Bike', 'Other'
         select.appendChild(opt);
     });
 
@@ -1954,6 +2023,33 @@ async function confirmBookingFromModal() {
     const vehicleId = select.value ? parseInt(select.value) : null;
     const vehicleName = selectedOpt?.dataset?.vname || null;
     const vehiclePlate = selectedOpt?.dataset?.vplate || null;
+    const vehicleType = selectedOpt?.dataset?.vtype || null; // 'Car', 'Bike', 'Other'
+
+    // ── Vehicle-Type Mismatch Check ──
+    if (vehicleId && vehicleType) {
+        const node = P_NODES.find(n => n.id === nodeId);
+        if (node) {
+            const facilityType = node.vehicleType || 'car'; // 'car' or '2-wheeler'
+            const isBikeVehicle = vehicleType === 'Bike';
+            const isCarFacility = facilityType === 'car';
+            const isCarVehicle = vehicleType === 'Car';
+            const is2wFacility = facilityType === '2-wheeler';
+
+            if ((isBikeVehicle && isCarFacility) || (isCarVehicle && is2wFacility)) {
+                const vehicleEmoji = isBikeVehicle ? '🏍️' : '🚗';
+                const facilityEmoji = isCarFacility ? '🚗' : '🏍️';
+                const vehicleLabel = isBikeVehicle ? 'Bike / Two-Wheeler' : 'Car';
+                const facilityLabel = isCarFacility ? 'Car Parking Zone' : 'Two-Wheeler Parking Zone';
+                showMismatchToast(
+                    vehicleEmoji, vehicleLabel,
+                    facilityEmoji, facilityLabel,
+                    node.name
+                );
+                logToConsole(`> ⚠ BLOCKED: ${vehicleLabel} cannot park in ${facilityLabel} (${node.name})`, 'error');
+                return; // Do NOT close the modal — let them pick a different vehicle
+            }
+        }
+    }
 
     document.getElementById('booking-modal').classList.add('hidden');
     logToConsole(`> Initiating reservation for ${nodeId} / ${slotId}...`);
